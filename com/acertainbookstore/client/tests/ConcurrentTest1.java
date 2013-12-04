@@ -75,7 +75,6 @@ public class ConcurrentTest1 {
 		}
 		
 	}
-	
 	public class addCopiesRunnable implements Runnable {
 
 		public void run() {

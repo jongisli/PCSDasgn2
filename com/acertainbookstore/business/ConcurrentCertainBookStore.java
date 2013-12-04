@@ -312,6 +312,7 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 
 		// Get the numBooks random books
 		for (Integer index : tobePicked) {
+			//lock on book? 
 			book = listAllEditorPicks.get(index);
 			listEditorPicks.add(book.immutableBook());
 		}
