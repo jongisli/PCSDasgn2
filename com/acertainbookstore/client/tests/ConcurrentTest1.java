@@ -33,7 +33,7 @@ public class ConcurrentTest1 {
 		concurrentclientA = CertainBookStore.getInstance();
 	}
 	
-	
+	@Test
 	public void TestAtomicity() {
 		
 		Thread client1 = new Thread(new buyBooksRunnable());
