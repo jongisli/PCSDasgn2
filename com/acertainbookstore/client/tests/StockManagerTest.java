@@ -356,68 +356,6 @@ public class StockManagerTest {
 
 	}
 
-	/**
-	 * Here we want to test getBooksInDemand functionality
-	 * 
-	 * 1. We create a book with 1 copy in stock.
-	 * 
-	 * 2. We try to buy this book twice.
-	 * 
-	 * 3. First time buying should be successful but the second time buying
-	 * should throw exception book not in stock.
-	 * 
-	 * 4. Now we execute storeManager.getBooksInDemand and check that testISBN
-	 * is returned in this call.
-	 */
-
-	@Test
-	public void testGetBooksInDemand() {
-		Integer testISBN = 500;
-		Set<StockBook> booksToAdd = new HashSet<StockBook>();
-		booksToAdd.add(new ImmutableStockBook(testISBN, "Book Name",
-				"Book Author", (float) 100, 1, 0, 0, 0, false));
-		try {
-			storeManager.addBooks(booksToAdd);
-		} catch (BookStoreException e) {
-			e.printStackTrace();
-			fail();
-		}
-
-		Set<BookCopy> booksToBuy = new HashSet<BookCopy>();
-		booksToBuy.add(new BookCopy(testISBN, 1));
-		try {
-			client.buyBooks(booksToBuy);
-		} catch (BookStoreException e) {
-			e.printStackTrace();
-			fail();
-		}
-		Boolean notInStockExceptionThrown = false;
-		try {
-			client.buyBooks(booksToBuy);
-		} catch (BookStoreException e) {
-			notInStockExceptionThrown = true;
-		}
-		assertTrue("Trying to buy the book second time should throw exception",
-				notInStockExceptionThrown);
-
-		List<StockBook> booksInDemand = null;
-		try {
-			booksInDemand = storeManager.getBooksInDemand();
-		} catch (BookStoreException e) {
-			e.printStackTrace();
-			fail();
-		}
-		Boolean listContainsTestISBN = false;
-		for (StockBook b : booksInDemand) {
-			if (b.getISBN() == testISBN) {
-				listContainsTestISBN = true;
-				break;
-			}
-		}
-		assertTrue("testISBN should be returned by getBooksInDemand",
-				listContainsTestISBN);
-	}
-
 	@AfterClass
 	public static void tearDownAfterClass() {
 		if (!localTest) {
