@@ -11,7 +11,7 @@ import org.junit.Test;
 
 import com.acertainbookstore.business.BookCopy;
 import com.acertainbookstore.business.CertainBookStore;
-import com.acertainbookstore.business.ConcurrentCertainBookStore;
+import com.acertainbookstore.business.CertainBookStore;
 import com.acertainbookstore.business.ImmutableStockBook;
 import com.acertainbookstore.business.StockBook;
 import com.acertainbookstore.client.BookStoreHTTPProxy;
@@ -30,8 +30,8 @@ public class ConcurrentTest1 {
 	@BeforeClass
 	public static void setUpBeforeClass() {
 	
-		storeManager = ConcurrentCertainBookStore.getInstance();
-		client = ConcurrentCertainBookStore.getInstance();
+		storeManager = CertainBookStore.getInstance();
+		client = CertainBookStore.getInstance();
 	}
 	
 	@Test
@@ -71,6 +71,7 @@ public class ConcurrentTest1 {
 			if (b.getISBN() == testISBN) {
 				assertTrue("Num copies  after buying one copy 10 times and adding one copy 10 times",
 						b.getNumCopies() == 100);
+				System.out.println(b.getNumCopies());
 				break;
 			}
 		}
@@ -87,8 +88,8 @@ public class ConcurrentTest1 {
 			
 			public buyBooksClient(int testISBN, int repeats)
 			{
-				this.storeManager = ConcurrentCertainBookStore.getInstance();
-				this.client = ConcurrentCertainBookStore.getInstance();
+				this.storeManager = CertainBookStore.getInstance();
+				this.client = CertainBookStore.getInstance();
 				this.repeats = repeats;
 				
 				this.theSagas = new HashSet<BookCopy>();
@@ -123,8 +124,8 @@ private class addCopiesClient implements Runnable {
 	
 	public addCopiesClient(int testISBN, int repeats)
 	{
-		this.storeManager = ConcurrentCertainBookStore.getInstance();
-		this.client = ConcurrentCertainBookStore.getInstance();
+		this.storeManager = CertainBookStore.getInstance();
+		this.client = CertainBookStore.getInstance();
 		this.repeats = repeats;
 		
 		this.theSagas = new HashSet<BookCopy>();
