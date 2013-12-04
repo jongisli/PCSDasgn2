@@ -10,8 +10,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.acertainbookstore.business.BookCopy;
-import com.acertainbookstore.business.CertainBookStore;
-import com.acertainbookstore.business.CertainBookStore;
+import com.acertainbookstore.business.ConcurrentCertainBookStore;
+import com.acertainbookstore.business.ConcurrentCertainBookStore;
 import com.acertainbookstore.business.ImmutableStockBook;
 import com.acertainbookstore.business.StockBook;
 import com.acertainbookstore.client.BookStoreHTTPProxy;
@@ -30,20 +30,20 @@ public class ConcurrentTest1 {
 	@BeforeClass
 	public static void setUpBeforeClass() {
 	
-		storeManager = CertainBookStore.getInstance();
-		client = CertainBookStore.getInstance();
+		storeManager = ConcurrentCertainBookStore.getInstance();
+		client = ConcurrentCertainBookStore.getInstance();
 	}
 	
 	@Test
 	public void TestAtomicity() {
 		
 		int testISBN = 100;
+		int amountOfBooks = 1000;
 		Set<StockBook> booksToAdd = new HashSet<StockBook>();
 		booksToAdd.add(new ImmutableStockBook(testISBN,
 				"Egils saga Skalla-Gr’mssonar",
-				"Viking Vikingsson", (float) 100, 100, 0, 0, 0,
+				"Viking Vikingsson", (float) 100, amountOfBooks, 0, 0, 0,
 				false));
-
 		try {
 			storeManager.addBooks(booksToAdd);
 		} catch (BookStoreException e) {
@@ -51,12 +51,20 @@ public class ConcurrentTest1 {
 			fail();
 		}
 		
-		int repeats = 100;
+		int repeats = 500;
 		Thread client1 = new Thread(new buyBooksClient(testISBN, repeats));
 		Thread client2 = new Thread(new addCopiesClient(testISBN, repeats));
 		
 		client1.start();
 		client2.start();
+		
+		try {
+			client1.join();
+			client2.join();
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+			fail();
+		}
 		
 		
 		List<StockBook> listBooks = null;
@@ -69,13 +77,12 @@ public class ConcurrentTest1 {
 		
 		for (StockBook b : listBooks) {
 			if (b.getISBN() == testISBN) {
-				assertTrue("Num copies  after buying one copy 10 times and adding one copy 10 times",
-						b.getNumCopies() == 100);
 				System.out.println(b.getNumCopies());
+				assertTrue("Num copies  after buying one copy 10 times and adding one copy 10 times",
+						b.getNumCopies() == amountOfBooks);
 				break;
 			}
 		}
-	
 	}
 	
 	private class buyBooksClient implements Runnable {
@@ -88,8 +95,8 @@ public class ConcurrentTest1 {
 			
 			public buyBooksClient(int testISBN, int repeats)
 			{
-				this.storeManager = CertainBookStore.getInstance();
-				this.client = CertainBookStore.getInstance();
+				this.storeManager = ConcurrentCertainBookStore.getInstance();
+				this.client = ConcurrentCertainBookStore.getInstance();
 				this.repeats = repeats;
 				
 				this.theSagas = new HashSet<BookCopy>();
@@ -107,46 +114,42 @@ public class ConcurrentTest1 {
 					e.printStackTrace();
 					fail();
 				}
-				
-				
 			}
 				
 		}
 
 
-private class addCopiesClient implements Runnable {
-
-
-	private StockManager storeManager;
-	private BookStore client;
-	private Set<BookCopy> theSagas;
-	private int repeats;
+	private class addCopiesClient implements Runnable {
 	
-	public addCopiesClient(int testISBN, int repeats)
-	{
-		this.storeManager = CertainBookStore.getInstance();
-		this.client = CertainBookStore.getInstance();
-		this.repeats = repeats;
+		private StockManager storeManager;
+		private BookStore client;
+		private Set<BookCopy> theSagas;
+		private int repeats;
 		
-		this.theSagas = new HashSet<BookCopy>();
-		theSagas.add(new BookCopy(testISBN, 1));
-	}
-	
-	@Override
-	public void run() {
-		try {
-			for (int i = 0; i < repeats; i++)
-			{
-				storeManager.addCopies(theSagas);
-			}
-		} catch (BookStoreException e) {
-			e.printStackTrace();
-			fail();
+		public addCopiesClient(int testISBN, int repeats)
+		{
+			this.storeManager = ConcurrentCertainBookStore.getInstance();
+			this.client = ConcurrentCertainBookStore.getInstance();
+			this.repeats = repeats;
+			
+			this.theSagas = new HashSet<BookCopy>();
+			theSagas.add(new BookCopy(testISBN, 1));
 		}
 		
-		
-	}
-		
-}		
-
+		@Override
+		public void run() {
+			try {
+				for (int i = 0; i < repeats; i++)
+				{
+					storeManager.addCopies(theSagas);
+				}
+			} catch (BookStoreException e) {
+				e.printStackTrace();
+				fail();
+			}
+			
+			
+		}
+			
+	}		
 }

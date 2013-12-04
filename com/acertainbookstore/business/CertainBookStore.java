@@ -36,7 +36,7 @@ public class CertainBookStore implements BookStore, StockManager {
 
 	}
 
-	public synchronized static CertainBookStore getInstance() {
+	public  static CertainBookStore getInstance() {
 		if (singleInstance != null) {
 			return singleInstance;
 		} else {
@@ -46,7 +46,7 @@ public class CertainBookStore implements BookStore, StockManager {
 		return singleInstance;
 	}
 
-	public synchronized void addBooks(Set<StockBook> bookSet)
+	public  void addBooks(Set<StockBook> bookSet)
 			throws BookStoreException {
 
 		if (bookSet == null) {
@@ -79,7 +79,7 @@ public class CertainBookStore implements BookStore, StockManager {
 		return;
 	}
 
-	public synchronized void addCopies(Set<BookCopy> bookCopiesSet)
+	public  void addCopies(Set<BookCopy> bookCopiesSet)
 			throws BookStoreException {
 		int ISBN, numCopies;
 
@@ -112,7 +112,7 @@ public class CertainBookStore implements BookStore, StockManager {
 		}
 	}
 
-	public synchronized List<StockBook> getBooks() {
+	public  List<StockBook> getBooks() {
 		List<StockBook> listBooks = new ArrayList<StockBook>();
 		Collection<BookStoreBook> bookMapValues = bookMap.values();
 		for (BookStoreBook book : bookMapValues) {
@@ -121,7 +121,7 @@ public class CertainBookStore implements BookStore, StockManager {
 		return listBooks;
 	}
 
-	public synchronized void updateEditorPicks(Set<BookEditorPick> editorPicks)
+	public  void updateEditorPicks(Set<BookEditorPick> editorPicks)
 			throws BookStoreException {
 		// Check that all ISBNs that we add/remove are there first.
 		if (editorPicks == null) {
@@ -147,7 +147,7 @@ public class CertainBookStore implements BookStore, StockManager {
 		return;
 	}
 
-	public synchronized void buyBooks(Set<BookCopy> bookCopiesToBuy)
+	public  void buyBooks(Set<BookCopy> bookCopiesToBuy)
 			throws BookStoreException {
 		if (bookCopiesToBuy == null) {
 			throw new BookStoreException(BookStoreConstants.NULL_INPUT);
@@ -186,7 +186,7 @@ public class CertainBookStore implements BookStore, StockManager {
 		return;
 	}
 
-	public synchronized List<Book> getBooks(Set<Integer> isbnSet)
+	public  List<Book> getBooks(Set<Integer> isbnSet)
 			throws BookStoreException {
 		if (isbnSet == null) {
 			throw new BookStoreException(BookStoreConstants.NULL_INPUT);
@@ -211,7 +211,7 @@ public class CertainBookStore implements BookStore, StockManager {
 	}
 
 
-	public synchronized List<Book> getEditorPicks(int numBooks)
+	public  List<Book> getEditorPicks(int numBooks)
 			throws BookStoreException {
 		if (numBooks < 0) {
 			throw new BookStoreException("numBooks = " + numBooks
@@ -258,13 +258,13 @@ public class CertainBookStore implements BookStore, StockManager {
 	}
 
 	@Override
-	public synchronized List<Book> getTopRatedBooks(int numBooks) throws BookStoreException {
+	public  List<Book> getTopRatedBooks(int numBooks) throws BookStoreException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public synchronized List<StockBook> getBooksInDemand() throws BookStoreException {
+	public  List<StockBook> getBooksInDemand() throws BookStoreException {
 		// TODO Auto-generated method stub
 		return null;
 	}
