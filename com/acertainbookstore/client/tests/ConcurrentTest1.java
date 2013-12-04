@@ -24,7 +24,6 @@ public class ConcurrentTest1 {
 	//private static boolean concurrentlocalTest = true; 
 	private static StockManager concurrentstoreManager;
 	private static BookStore concurrentclientA;
-	//private static BookStore concurrentclientB;
 	
 	
 	@BeforeClass
@@ -32,7 +31,16 @@ public class ConcurrentTest1 {
 	
 		concurrentstoreManager = CertainBookStore.getInstance();
 		concurrentclientA = CertainBookStore.getInstance();
-		//concurrentclientB = CertainBookStore.getInstance();
+	}
+	
+	
+	public void TestAtomicity() {
+		
+		Thread client1 = new Thread(new buyBooksRunnable());
+		Thread client2 = new Thread(new addCopiesRunnable());
+		
+		client1.start();
+		client2.start();
 	}
 	
 	public class buyBooksRunnable implements Runnable {
