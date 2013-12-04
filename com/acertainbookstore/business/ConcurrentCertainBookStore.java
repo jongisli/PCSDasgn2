@@ -75,15 +75,13 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 			//unlock readLock
 			finally { r.unlock(); }
 		}
-
+		w.lock();
+		try {
 		for (StockBook book : bookSet) {
-			int ISBN = book.getISBN();
-			//writeLock on bookMap for putting book
-			w.lock();
-			try { bookMap.put(ISBN, new BookStoreBook(book)); }
-			//unlock writeLock
-			finally { w.unlock(); }
+				int ISBN = book.getISBN();
+				bookMap.put(ISBN, new BookStoreBook(book));
 		}
+		} finally { w.unlock(); }
 		return;
 	}
 	
@@ -119,17 +117,15 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 
 		BookStoreBook book;
 		// Update the number of copies
-		for (BookCopy bookCopy : bookCopiesSet) {
-			ISBN = bookCopy.getISBN();
-			numCopies = bookCopy.getNumCopies();
-			r.lock();
-			try { book = bookMap.get(ISBN); }
-			finally { r.unlock(); }
-			w.lock();
-			try { book.addCopies(numCopies); }
-			finally { w.unlock(); }
-
-		}
+		w.lock();
+		try {
+			for (BookCopy bookCopy : bookCopiesSet) {
+				ISBN = bookCopy.getISBN();
+				numCopies = bookCopy.getNumCopies();
+				book = bookMap.get(ISBN);
+				book.addCopies(numCopies);
+			}
+		} finally { w.unlock(); }
 	}
 
 	public List<StockBook> getBooks() {
@@ -169,15 +165,15 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 			}
 			finally { r.unlock(); }
 		}
+		w.lock();
+		try {
 
-		for (BookEditorPick editorPickArg : editorPicks) {
-			w.lock();
-			try {
-				bookMap.get(editorPickArg.getISBN()).setEditorPick(
-						editorPickArg.isEditorPick());
+			for (BookEditorPick editorPickArg : editorPicks) {
+					bookMap.get(editorPickArg.getISBN()).setEditorPick(
+							editorPickArg.isEditorPick());
 			}
-			finally { w.unlock(); }
 		}
+			finally { w.unlock(); }
 		return;
 	}
 
@@ -220,15 +216,13 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 					+ BookStoreConstants.NOT_AVAILABLE);
 
 		// Then make purchase
-		for (BookCopy bookCopyToBuy : bookCopiesToBuy) {
-			r.lock();
-			try { book = bookMap.get(bookCopyToBuy.getISBN()); }
-			finally { r.unlock(); }
-			
-			w.lock();
-			try { book.buyCopies(bookCopyToBuy.getNumCopies()); }
-			finally {w.unlock(); }
-		}
+		w.lock();
+		try {
+			for (BookCopy bookCopyToBuy : bookCopiesToBuy) {
+				book = bookMap.get(bookCopyToBuy.getISBN());
+				book.buyCopies(bookCopyToBuy.getNumCopies());
+			}
+		} finally { w.unlock(); }
 		return;
 	}
 
@@ -254,12 +248,13 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 		List<Book> listBooks = new ArrayList<Book>();
 
 		// Get the books
-		for (Integer ISBN : isbnSet) {
-			r.lock();
-			try { listBooks.add(bookMap.get(ISBN).immutableBook()); }
-			finally { r.unlock(); }
-		}
+		r.lock();
+		try {
+			for (Integer ISBN : isbnSet) {
+				listBooks.add(bookMap.get(ISBN).immutableBook());
+			} 
 		return listBooks;
+		} finally { r.unlock(); }
 	}
 
 
