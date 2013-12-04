@@ -11,6 +11,7 @@ import org.junit.Test;
 
 import com.acertainbookstore.business.Book;
 import com.acertainbookstore.business.BookCopy;
+import com.acertainbookstore.business.CertainBookStore;
 import com.acertainbookstore.business.ConcurrentCertainBookStore;
 import com.acertainbookstore.business.ImmutableStockBook;
 import com.acertainbookstore.business.StockBook;
@@ -68,12 +69,21 @@ public class ConcurrentTest2 {
 			fail();
 		}
 		
-		int repeats = 100;
+		int repeats = 1000;
 		Thread client1 = new Thread(new BuyAddBooksClient(testISBN, repeats));
 		Thread client2 = new Thread(new GetBooksClient(testISBN, repeats));
 		
 		client1.start();
 		client2.start();
+		
+		try {
+			client1.join();
+			client2.join();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			fail();
+		}
+		
 	}
 
 	private class BuyAddBooksClient implements Runnable
@@ -112,28 +122,21 @@ public class ConcurrentTest2 {
 	
 	private class GetBooksClient implements Runnable
 	{
-		
-		private BookStore client;
+		private StockManager storeManager;
 		private int repeats;
-		private Set<Integer> theSagasISBNList;
 		private int testISBN;
 		
 		public GetBooksClient(int testISBN, int repeats)
 		{
-			this.client = ConcurrentCertainBookStore.getInstance();
+			this.storeManager = ConcurrentCertainBookStore.getInstance();
 			this.repeats = repeats;
 			this.testISBN = testISBN;
-			
-			this.theSagasISBNList = new HashSet<Integer>();
-			theSagasISBNList.add(testISBN);
-			theSagasISBNList.add(testISBN + 1);
-			theSagasISBNList.add(testISBN + 2);
 		}
 
 		@Override
 		public void run() {
 			try {
-				List<Book> books = null;
+				List<StockBook> books = null;
 				boolean book1IsThere = false;
 				boolean book2IsThere = false;
 				boolean book3IsThere = false;
@@ -143,25 +146,27 @@ public class ConcurrentTest2 {
 					book1IsThere = false;
 					book2IsThere = false;
 					book3IsThere = false;
-					books = client.getBooks(theSagasISBNList);
-					for (Book b : books)
+					books = storeManager.getBooks();
+					for (StockBook b : books)
 					{
 						if (b.getISBN() == testISBN)
 						{
-							book1IsThere = true;
+							book1IsThere = b.getNumCopies() == 1 ? true : false;
 						}
 						if (b.getISBN() == testISBN + 1)
 						{
-							book2IsThere = true;
+							book2IsThere = b.getNumCopies() == 1 ? true : false;
 						}
 						if (b.getISBN() == testISBN + 2)
 						{
-							book3IsThere = true;
+							book3IsThere = b.getNumCopies() == 1 ? true : false;
 						}
 					}
 					
 					boolean allAreThere = book1IsThere && book2IsThere && book3IsThere;
 					boolean noneAreThere = !book1IsThere && !book2IsThere && !book3IsThere;
+					
+					System.out.println(allAreThere + " " + noneAreThere);
 					
 					assertTrue(allAreThere != noneAreThere);
 				}
