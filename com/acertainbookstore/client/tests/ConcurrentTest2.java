@@ -166,8 +166,6 @@ public class ConcurrentTest2 {
 					boolean allAreThere = book1IsThere && book2IsThere && book3IsThere;
 					boolean noneAreThere = !book1IsThere && !book2IsThere && !book3IsThere;
 					
-					System.out.println(allAreThere + " " + noneAreThere);
-					
 					assertTrue(allAreThere != noneAreThere);
 				}
 			} catch (BookStoreException e) {
