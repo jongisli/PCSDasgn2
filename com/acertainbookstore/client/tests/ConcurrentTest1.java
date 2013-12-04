@@ -11,6 +11,7 @@ import org.junit.Test;
 
 import com.acertainbookstore.business.BookCopy;
 import com.acertainbookstore.business.CertainBookStore;
+import com.acertainbookstore.business.ConcurrentCertainBookStore;
 import com.acertainbookstore.business.ImmutableStockBook;
 import com.acertainbookstore.business.StockBook;
 import com.acertainbookstore.client.BookStoreHTTPProxy;
@@ -22,107 +23,129 @@ import com.acertainbookstore.utils.BookStoreException;
 public class ConcurrentTest1 {
 
 	//private static boolean concurrentlocalTest = true; 
-	private static StockManager concurrentstoreManager;
-	private static BookStore concurrentclientA;
+	private static StockManager storeManager;
+	private static BookStore client;
 	
 	
 	@BeforeClass
 	public static void setUpBeforeClass() {
 	
-		concurrentstoreManager = CertainBookStore.getInstance();
-		concurrentclientA = CertainBookStore.getInstance();
+		storeManager = ConcurrentCertainBookStore.getInstance();
+		client = ConcurrentCertainBookStore.getInstance();
 	}
 	
 	@Test
 	public void TestAtomicity() {
 		
-		Thread client1 = new Thread(new buyBooksRunnable());
-		Thread client2 = new Thread(new addCopiesRunnable());
+		int testISBN = 100;
+		Set<StockBook> booksToAdd = new HashSet<StockBook>();
+		booksToAdd.add(new ImmutableStockBook(testISBN,
+				"Egils saga Skalla-Gr’mssonar",
+				"Viking Vikingsson", (float) 100, 100, 0, 0, 0,
+				false));
+
+		try {
+			storeManager.addBooks(booksToAdd);
+		} catch (BookStoreException e) {
+			e.printStackTrace();
+			fail();
+		}
+		
+		int repeats = 100;
+		Thread client1 = new Thread(new buyBooksClient(testISBN, repeats));
+		Thread client2 = new Thread(new addCopiesClient(testISBN, repeats));
 		
 		client1.start();
 		client2.start();
+		
+		
+		List<StockBook> listBooks = null;
+		try {
+			listBooks = storeManager.getBooks();
+		} catch (BookStoreException e) {
+			e.printStackTrace();
+			fail();
+		}
+		
+		for (StockBook b : listBooks) {
+			if (b.getISBN() == testISBN) {
+				assertTrue("Num copies  after buying one copy 10 times and adding one copy 10 times",
+						b.getNumCopies() == 100);
+				break;
+			}
+		}
+	
 	}
 	
-	public class buyBooksRunnable implements Runnable {
+	private class buyBooksClient implements Runnable {
 
-		public void run() {
 
-				Integer testISBN = 300;
-				Integer numCpies = 5;
-				int buyCopies = 2;
+			private StockManager storeManager;
+			private BookStore client;
+			private Set<BookCopy> theSagas;
+			private int repeats;
+			
+			public buyBooksClient(int testISBN, int repeats)
+			{
+				this.storeManager = ConcurrentCertainBookStore.getInstance();
+				this.client = ConcurrentCertainBookStore.getInstance();
+				this.repeats = repeats;
 				
-				Set<StockBook> booksToAdd = new HashSet<StockBook>();
-				booksToAdd.add(new ImmutableStockBook(testISBN, "Book Name",
-						"Author Name", (float) 100, numCpies, 0, 0, 0, false));
+				this.theSagas = new HashSet<BookCopy>();
+				theSagas.add(new BookCopy(testISBN, 1));
+			}
+			
+			@Override
+			public void run() {
 				try {
-					concurrentstoreManager.addBooks(booksToAdd);
+					for (int i = 0; i < repeats; i++)
+					{
+						client.buyBooks(theSagas);
+					}
 				} catch (BookStoreException e) {
 					e.printStackTrace();
 					fail();
 				}
 				
-				Set<BookCopy> booksToBuy = new HashSet<BookCopy>();
-				List<StockBook> listBooks = null;
-				booksToBuy.add(new BookCopy(testISBN, buyCopies));
-				try {
-					concurrentclientA.buyBooks(booksToBuy);
-					listBooks = concurrentstoreManager.getBooks();
-				} catch (BookStoreException e) {
-					e.printStackTrace();
-					fail();
-				}
 				
-				for (StockBook b : listBooks) {
-					if (b.getISBN() == testISBN) {
-						assertTrue("Num copies  after buying one copy",
-								b.getNumCopies() == numCpies);
-						break;
-					}
-				}
-				
-		}
-		
-	}
-	public class addCopiesRunnable implements Runnable {
-
-		public void run() {
-			
-			Integer testISBN = 300;
-			Integer totalNumCopies = 5;
-			
-			Set<StockBook> booksToAdd = new HashSet<StockBook>();
-			booksToAdd.add(new ImmutableStockBook(testISBN, "Book Name",
-					"Book Author", (float) 100, 5, 0, 0, 0, false));
-			try {
-				concurrentstoreManager.addBooks(booksToAdd);
-			} catch (BookStoreException e) {
-				e.printStackTrace();
-				fail();
-			}
-			
-			BookCopy bookCopy = new BookCopy(testISBN, 2);
-			Set<BookCopy> bookCopyList = new HashSet<BookCopy>();
-			bookCopyList.add(bookCopy);
-			List<StockBook> listBooks = null;
-			try {
-				concurrentstoreManager.addCopies(bookCopyList);
-				listBooks = concurrentstoreManager.getBooks();
-
-				for (StockBook b : listBooks) {
-					if (b.getISBN() == testISBN) {
-						assertTrue("Number of copies!",
-								b.getNumCopies() == totalNumCopies);
-						break;
-					}
-				}
-			} catch (BookStoreException e) {
-				e.printStackTrace();
-				fail();
 			}
 				
 		}
+
+
+private class addCopiesClient implements Runnable {
+
+
+	private StockManager storeManager;
+	private BookStore client;
+	private Set<BookCopy> theSagas;
+	private int repeats;
+	
+	public addCopiesClient(int testISBN, int repeats)
+	{
+		this.storeManager = ConcurrentCertainBookStore.getInstance();
+		this.client = ConcurrentCertainBookStore.getInstance();
+		this.repeats = repeats;
+		
+		this.theSagas = new HashSet<BookCopy>();
+		theSagas.add(new BookCopy(testISBN, 1));
+	}
+	
+	@Override
+	public void run() {
+		try {
+			for (int i = 0; i < repeats; i++)
+			{
+				storeManager.addCopies(theSagas);
+			}
+		} catch (BookStoreException e) {
+			e.printStackTrace();
+			fail();
+		}
+		
 		
 	}
-
+		
+}		
 
 }
