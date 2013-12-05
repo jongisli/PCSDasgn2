@@ -1,5 +1,8 @@
 package com.acertainbookstore.business;
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 /**
  * The implementation of all parts of the book. Only parts of it are available
  * in the BookStoreClient and StockManager, cf. the Book interface and the
@@ -12,6 +15,11 @@ public class BookStoreBook extends ImmutableBook {
 	private long timesRated;
 	private long saleMisses;
 	private boolean editorPick;
+	
+	//define read and write locks
+	private final ReentrantReadWriteLock rwl = new ReentrantReadWriteLock();
+	private final Lock r = rwl.readLock();
+	private final Lock w = rwl.writeLock();
 
 	/**
 	 * Constructor to create a book object
@@ -41,6 +49,8 @@ public class BookStoreBook extends ImmutableBook {
 		this.setEditorPick(bookToCopy.isEditorPick());
 	}
 
+	//There has not been put locks on the functions regarding rating
+	//since these functionalities has not been implemented in this solution
 	public long getTotalRating() {
 		return totalRating;
 	}
@@ -50,21 +60,27 @@ public class BookStoreBook extends ImmutableBook {
 	}
 
 	public int getNumCopies() {
-		return numCopies;
+		r.lock();
+		try { return numCopies; }
+		finally { r.unlock(); }
 	}
 
 	public long getSaleMisses() {
-		return saleMisses;
+		r.lock();
+		try { return saleMisses; }
+		finally { r.unlock(); }
 	}
-
 	public float getAverageRating() {
 		return (float) (timesRated == 0 ? -1.0 : totalRating / timesRated);
 	}
 
 	public boolean isEditorPick() {
-		return editorPick;
+		r.lock();
+		try { return editorPick; }
+		finally { r.unlock(); }
 	}
 
+	
 	/**
 	 * Sets the total rating of the book.
 	 * 
@@ -89,7 +105,9 @@ public class BookStoreBook extends ImmutableBook {
 	 * @param numCopies
 	 */
 	private void setNumCopies(int numCopies) {
-		this.numCopies = numCopies;
+		w.lock();
+		try { this.numCopies = numCopies; }
+		finally { w.unlock(); }
 	}
 
 	/**
@@ -99,7 +117,9 @@ public class BookStoreBook extends ImmutableBook {
 	 * @param saleMisses
 	 */
 	private void setSaleMisses(long saleMisses) {
-		this.saleMisses = saleMisses;
+		w.lock();
+		try { this.saleMisses = saleMisses; }
+		finally { w.unlock(); }
 	}
 
 	/**
@@ -109,7 +129,9 @@ public class BookStoreBook extends ImmutableBook {
 	 * @param editorPick
 	 */
 	public void setEditorPick(boolean editorPick) {
-		this.editorPick = editorPick;
+		w.lock();
+		try { this.editorPick = editorPick; }
+		finally { w.unlock(); }
 	}
 
 	/**
@@ -118,7 +140,9 @@ public class BookStoreBook extends ImmutableBook {
 	 * @return
 	 */
 	public boolean areCopiesInStore(int numCopies) {
-		return (this.numCopies>=numCopies);
+		r.lock();
+		try { return (this.numCopies>=numCopies); }
+		finally { r.unlock(); }
 	}
 	
 	/**
@@ -127,19 +151,27 @@ public class BookStoreBook extends ImmutableBook {
 	 * @return
 	 */
 	public boolean buyCopies(int numCopies) {
-		if(areCopiesInStore(numCopies)) {
-			this.numCopies-=numCopies;
-			return true;
+		w.lock();
+		try {
+			if(areCopiesInStore(numCopies)) {
+				this.numCopies-=numCopies;
+				return true;
+			}
+			return false;
 		}
-		return false;
+		finally { w.unlock(); }
 	}
 	
 	/**
 	 * Adds newCopies to the total number of copies of the book.
 	 */
 	public void addCopies(int newCopies) {
-		this.numCopies += newCopies;
-		this.saleMisses = 0;
+		w.lock();
+		try {
+			this.numCopies += newCopies;
+			this.saleMisses = 0;
+		}
+		finally { w.unlock(); }
 	}
 
 
@@ -147,7 +179,9 @@ public class BookStoreBook extends ImmutableBook {
 	 * Increases the amount of missed sales of the book.
 	 */
 	public void addSaleMiss() {
-		this.saleMisses++;
+		w.lock();
+		try { this.saleMisses++; }
+		finally { w.unlock(); }
 	}
 
 	/**
@@ -155,6 +189,8 @@ public class BookStoreBook extends ImmutableBook {
 	 * 
 	 * @param rating
 	 */
+	
+	//No locks on addRating since it has not been implemented in this solution
 	public void addRating(int rating) {
 		this.totalRating += rating;
 		this.timesRated++;
@@ -167,7 +203,9 @@ public class BookStoreBook extends ImmutableBook {
 	 * @return
 	 */
 	public boolean hadSaleMiss() {
-		return this.saleMisses > 0;
+		r.lock();
+		try { return this.saleMisses > 0; }
+		finally { r.unlock(); }
 	}
 
 	/**
