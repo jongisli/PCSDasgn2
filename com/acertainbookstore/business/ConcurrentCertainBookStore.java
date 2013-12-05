@@ -135,16 +135,15 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 
 	public List<StockBook> getBooks() {
 		List<StockBook> listBooks = new ArrayList<StockBook>();
-		r.lock();
+		w.lock();
 		try { 
 			Collection<BookStoreBook> bookMapValues = bookMap.values(); 
 			for (BookStoreBook book : bookMapValues) {
 				listBooks.add(book.immutableStockBook());
 			}
-			
-			return listBooks;
-			}
-		finally {r. unlock(); }
+		}
+		finally {w.unlock(); }
+		return listBooks;
 	}
 
 	public void updateEditorPicks(Set<BookEditorPick> editorPicks)
@@ -191,27 +190,26 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 		int ISBN;
 		BookStoreBook book;
 		Boolean saleMiss = false;
-		for (BookCopy bookCopyToBuy : bookCopiesToBuy) {
-			ISBN = bookCopyToBuy.getISBN();
-			if (BookStoreUtility.isInvalidISBN(ISBN))
-				throw new BookStoreException(BookStoreConstants.ISBN + ISBN
-						+ BookStoreConstants.INVALID);
-			r.lock(); // Acquiring intentional lock
-			try {
+		r.lock(); // Acquiring intentional lock
+		try {
+			for (BookCopy bookCopyToBuy : bookCopiesToBuy) {
+				ISBN = bookCopyToBuy.getISBN();
+				if (BookStoreUtility.isInvalidISBN(ISBN))
+					throw new BookStoreException(BookStoreConstants.ISBN + ISBN
+							+ BookStoreConstants.INVALID);
+				
 				if (!bookMap.containsKey(ISBN))
 					throw new BookStoreException(BookStoreConstants.ISBN + ISBN
 							+ BookStoreConstants.NOT_AVAILABLE);
 				book = bookMap.get(ISBN);
-				
+					
 				if (!book.areCopiesInStore(bookCopyToBuy.getNumCopies())) {
 					book.addSaleMiss();  // If we cannot sell the copies of the book
 					saleMiss = true;	 // its a miss
 				}
 			}
-			finally { r.unlock(); }
-			
 		}
-
+		finally { r.unlock(); }
 		// We throw exception now since we want to see how many books in the
 		// order incurred misses which is used by books in demand
 		if (saleMiss)
@@ -219,16 +217,14 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 					+ BookStoreConstants.NOT_AVAILABLE);
 
 		// Then make purchase
-
-		for (BookCopy bookCopyToBuy : bookCopiesToBuy) {
-			r.lock();
-			try{
+		r.lock();
+		try{
+			for (BookCopy bookCopyToBuy : bookCopiesToBuy) {
 				book = bookMap.get(bookCopyToBuy.getISBN());
 				book.buyCopies(bookCopyToBuy.getNumCopies());
 			}
-			finally { r.unlock(); }
 		}
-		
+		finally { r.unlock(); }
 		return;
 	}
 
