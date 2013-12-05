@@ -1,5 +1,5 @@
-package com.acertainbookstore.business;
 
+package com.acertainbookstore.business;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -116,8 +116,13 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 		}
 
 		BookStoreBook book;
-		// Update the number of copies
-		w.lock();
+		/* Update the number of copies:
+		 * We take a read lock here not a write lock since we would like
+		 * to allow for interleavings "on the Map level" with all functions 
+		 * except addBooks(). The intra-book locks will make sure each book
+		 * is consistent. 
+		 */
+		r.lock(); 
 		try {
 			for (BookCopy bookCopy : bookCopiesSet) {
 				ISBN = bookCopy.getISBN();
@@ -125,7 +130,7 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 				book = bookMap.get(ISBN);
 				book.addCopies(numCopies);
 			}
-		} finally { w.unlock(); }
+		} finally { r.unlock(); }
 	}
 
 	public List<StockBook> getBooks() {
@@ -139,7 +144,6 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 			
 			return listBooks;
 			}
-		//I think I can unlock here because listBooks is a temp of the Collection
 		finally {r. unlock(); }
 	}
 
@@ -165,7 +169,8 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 			}
 			finally { r.unlock(); }
 		}
-		w.lock();
+		// Taking read lock to allow interleavings (see comment in addCopies())
+		r.lock();
 		try {
 
 			for (BookEditorPick editorPickArg : editorPicks) {
@@ -173,7 +178,7 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 							editorPickArg.isEditorPick());
 			}
 		}
-			finally { w.unlock(); }
+		finally { r.unlock(); }
 		return;
 	}
 
@@ -191,22 +196,20 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 			if (BookStoreUtility.isInvalidISBN(ISBN))
 				throw new BookStoreException(BookStoreConstants.ISBN + ISBN
 						+ BookStoreConstants.INVALID);
-			r.lock();
-				try {
+			r.lock(); // Acquiring intentional lock
+			try {
 				if (!bookMap.containsKey(ISBN))
 					throw new BookStoreException(BookStoreConstants.ISBN + ISBN
 							+ BookStoreConstants.NOT_AVAILABLE);
 				book = bookMap.get(ISBN);
+				
+				if (!book.areCopiesInStore(bookCopyToBuy.getNumCopies())) {
+					book.addSaleMiss();  // If we cannot sell the copies of the book
+					saleMiss = true;	 // its a miss
+				}
 			}
 			finally { r.unlock(); }
-			//Should there be a readLock on book.areCopiesInStore() ?
-			if (!book.areCopiesInStore(bookCopyToBuy.getNumCopies())) {
-				w.lock();
-				try { book.addSaleMiss(); } // If we cannot sell the copies of the book
-											// its a miss
-				finally { w.unlock(); }
-				saleMiss = true;
-			}
+			
 		}
 
 		// We throw exception now since we want to see how many books in the
@@ -216,13 +219,16 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 					+ BookStoreConstants.NOT_AVAILABLE);
 
 		// Then make purchase
-		w.lock();
-		try {
-			for (BookCopy bookCopyToBuy : bookCopiesToBuy) {
+
+		for (BookCopy bookCopyToBuy : bookCopiesToBuy) {
+			r.lock();
+			try{
 				book = bookMap.get(bookCopyToBuy.getISBN());
 				book.buyCopies(bookCopyToBuy.getNumCopies());
 			}
-		} finally { w.unlock(); }
+			finally { r.unlock(); }
+		}
+		
 		return;
 	}
 
@@ -253,8 +259,9 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 			for (Integer ISBN : isbnSet) {
 				listBooks.add(bookMap.get(ISBN).immutableBook());
 			} 
+		} 
+		finally { r.unlock(); }
 		return listBooks;
-		} finally { r.unlock(); }
 	}
 
 
@@ -270,13 +277,10 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 		
 		//Moved book out of try clause
 		BookStoreBook book;
-		//read lock on it
 		r.lock();
 		try {
 			Iterator<Entry<Integer, BookStoreBook>> it = bookMap.entrySet()
 					.iterator();
-			
-			
 	
 			// Get all books that are editor picks
 			while (it.hasNext()) {
@@ -288,7 +292,6 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 				}
 			}
 		}
-		//unlock readLock on it
 		finally { r.unlock(); }
 
 		// Find numBooks random indices of books that will be picked
