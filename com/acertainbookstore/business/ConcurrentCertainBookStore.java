@@ -145,7 +145,11 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 		try { 
 			Collection<BookStoreBook> bookMapValues = bookMap.values(); 
 			for (BookStoreBook book : bookMapValues) {
+				book.aquireReadLock();
 				listBooks.add(book.immutableStockBook());
+			}
+			for (BookStoreBook book : bookMapValues) {
+				book.releaseReadLock();
 			}
 		}
 		finally {w.unlock(); }
@@ -174,14 +178,21 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 			}
 			finally { r.unlock(); }
 		}
-		// Taking read lock to allow interleavings (see comment in addCopies())
+		// Taking read lock to allow interleaving (see comment in addCopies())
+		BookStoreBook book;
 		r.lock();
 		try {
 
 			for (BookEditorPick editorPickArg : editorPicks) {
-					bookMap.get(editorPickArg.getISBN()).setEditorPick(
-							editorPickArg.isEditorPick());
+				book = bookMap.get(editorPickArg.getISBN());
+				book.aquireWriteLock();
+				book.setEditorPick(editorPickArg.isEditorPick());
 			}
+			
+			for (BookEditorPick editorPickArg : editorPicks) {
+				book = bookMap.get(editorPickArg.getISBN());
+				book.releaseWriteLock();
+			}			
 		}
 		finally { r.unlock(); }
 		return;
@@ -227,8 +238,16 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 		try{
 			for (BookCopy bookCopyToBuy : bookCopiesToBuy) {
 				book = bookMap.get(bookCopyToBuy.getISBN());
+				book.aquireWriteLock();
 				book.buyCopies(bookCopyToBuy.getNumCopies());
 			}
+			
+			for (BookCopy bookCopyToBuy : bookCopiesToBuy) {
+				ISBN = bookCopyToBuy.getISBN();
+				book = bookMap.get(ISBN);
+				book.releaseWriteLock();
+			}
+
 		}
 		finally { r.unlock(); }
 		return;
@@ -254,13 +273,22 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 		}
 
 		List<Book> listBooks = new ArrayList<Book>();
-
+		BookStoreBook book;
 		// Get the books
 		r.lock();
 		try {
 			for (Integer ISBN : isbnSet) {
-				listBooks.add(bookMap.get(ISBN).immutableBook());
+				book = bookMap.get(ISBN);
+				book.aquireReadLock();
+				listBooks.add(book.immutableBook());
 			} 
+			
+			for (Integer ISBN : isbnSet) {
+				book = bookMap.get(ISBN);
+				book.releaseReadLock();
+			} 
+			
+			
 		} 
 		finally { r.unlock(); }
 		return listBooks;
@@ -289,10 +317,20 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 				Entry<Integer, BookStoreBook> pair = (Entry<Integer, BookStoreBook>) it
 						.next();
 				book = (BookStoreBook) pair.getValue();
+				//readLock on book level
+				book.aquireReadLock();
 				if (book.isEditorPick()) {
 					listAllEditorPicks.add(book);
 				}
 			}
+			while (it.hasNext()) {
+				Entry<Integer, BookStoreBook> pair = (Entry<Integer, BookStoreBook>) it
+						.next();
+				book = (BookStoreBook) pair.getValue();
+
+				book.releaseReadLock();
+			}
+			
 		}
 		finally { r.unlock(); }
 
@@ -312,7 +350,6 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 
 		// Get the numBooks random books
 		for (Integer index : tobePicked) {
-			//lock on book? 
 			book = listAllEditorPicks.get(index);
 			listEditorPicks.add(book.immutableBook());
 		}

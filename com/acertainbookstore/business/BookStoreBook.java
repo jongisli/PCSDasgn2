@@ -228,5 +228,15 @@ public class BookStoreBook extends ImmutableBook {
 		w.unlock();
 		
 	}
+	
+	public void aquireReadLock() {
+		r.lock();		
+	}
+	
+	public void releaseReadLock() {
+		r.unlock();
+		
+	}
+
 
 }
