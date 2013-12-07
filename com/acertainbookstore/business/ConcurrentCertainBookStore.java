@@ -92,43 +92,49 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 		if (bookCopiesSet == null) {
 			throw new BookStoreException(BookStoreConstants.NULL_INPUT);
 		}
-
-		for (BookCopy bookCopy : bookCopiesSet) {
-			ISBN = bookCopy.getISBN();
-			numCopies = bookCopy.getNumCopies();
-			if (BookStoreUtility.isInvalidISBN(ISBN))
-				throw new BookStoreException(BookStoreConstants.ISBN + ISBN
-						+ BookStoreConstants.INVALID);
-			//readLock on bookMap
-			r.lock();
-			try {
-				if (!bookMap.containsKey(ISBN))
-					throw new BookStoreException(BookStoreConstants.ISBN + ISBN
-							+ BookStoreConstants.INVALID);
-			}
-			//unlock readLock
-			finally { r.unlock(); }
-			
-			if (BookStoreUtility.isInvalidNoCopies(numCopies))
-				throw new BookStoreException(BookStoreConstants.NUM_COPIES
-						+ numCopies + BookStoreConstants.INVALID);
-
-		}
-
-		BookStoreBook book;
+		
 		/* Update the number of copies:
 		 * We take a read lock here not a write lock since we would like
 		 * to allow for interleavings "on the Map level" with all functions 
 		 * except addBooks(). The intra-book locks will make sure each book
 		 * is consistent. 
 		 */
-		r.lock(); 
+		r.lock();
 		try {
 			for (BookCopy bookCopy : bookCopiesSet) {
 				ISBN = bookCopy.getISBN();
 				numCopies = bookCopy.getNumCopies();
+				if (BookStoreUtility.isInvalidISBN(ISBN))
+					throw new BookStoreException(BookStoreConstants.ISBN + ISBN
+							+ BookStoreConstants.INVALID);
+				
+				if (!bookMap.containsKey(ISBN))
+					throw new BookStoreException(BookStoreConstants.ISBN + ISBN
+							+ BookStoreConstants.INVALID);
+				
+				if (BookStoreUtility.isInvalidNoCopies(numCopies))
+					throw new BookStoreException(BookStoreConstants.NUM_COPIES
+							+ numCopies + BookStoreConstants.INVALID);
+	
+			}
+	
+			BookStoreBook book;
+			/* We acquire locks on all BookStoreBooks as we are going
+			 * to modify them here and release them all at once in the
+			 * for loop below to respect the strict 2PL.
+			 */
+			for (BookCopy bookCopy : bookCopiesSet) {
+				ISBN = bookCopy.getISBN();
+				numCopies = bookCopy.getNumCopies();
 				book = bookMap.get(ISBN);
+				book.aquireWriteLock();
 				book.addCopies(numCopies);
+			}
+			
+			for (BookCopy bookCopy : bookCopiesSet) {
+				ISBN = bookCopy.getISBN();
+				book = bookMap.get(ISBN);
+				book.releaseWriteLock();
 			}
 		} finally { r.unlock(); }
 	}

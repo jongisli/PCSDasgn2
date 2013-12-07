@@ -49,8 +49,6 @@ public class BookStoreBook extends ImmutableBook {
 		this.setEditorPick(bookToCopy.isEditorPick());
 	}
 
-	//There has not been put locks on the functions regarding rating
-	//since these functionalities has not been implemented in this solution
 	public long getTotalRating() {
 		return totalRating;
 	}
@@ -60,27 +58,21 @@ public class BookStoreBook extends ImmutableBook {
 	}
 
 	public int getNumCopies() {
-		r.lock();
-		try { return numCopies; }
-		finally { r.unlock(); }
+		return numCopies;
 	}
 
 	public long getSaleMisses() {
-		r.lock();
-		try { return saleMisses; }
-		finally { r.unlock(); }
+		return saleMisses;
 	}
+
 	public float getAverageRating() {
 		return (float) (timesRated == 0 ? -1.0 : totalRating / timesRated);
 	}
 
 	public boolean isEditorPick() {
-		r.lock();
-		try { return editorPick; }
-		finally { r.unlock(); }
+		return editorPick;
 	}
 
-	
 	/**
 	 * Sets the total rating of the book.
 	 * 
@@ -105,9 +97,7 @@ public class BookStoreBook extends ImmutableBook {
 	 * @param numCopies
 	 */
 	private void setNumCopies(int numCopies) {
-		w.lock();
-		try { this.numCopies = numCopies; }
-		finally { w.unlock(); }
+		this.numCopies = numCopies;
 	}
 
 	/**
@@ -117,9 +107,7 @@ public class BookStoreBook extends ImmutableBook {
 	 * @param saleMisses
 	 */
 	private void setSaleMisses(long saleMisses) {
-		w.lock();
-		try { this.saleMisses = saleMisses; }
-		finally { w.unlock(); }
+		this.saleMisses = saleMisses;
 	}
 
 	/**
@@ -129,9 +117,7 @@ public class BookStoreBook extends ImmutableBook {
 	 * @param editorPick
 	 */
 	public void setEditorPick(boolean editorPick) {
-		w.lock();
-		try { this.editorPick = editorPick; }
-		finally { w.unlock(); }
+		this.editorPick = editorPick;
 	}
 
 	/**
@@ -140,9 +126,7 @@ public class BookStoreBook extends ImmutableBook {
 	 * @return
 	 */
 	public boolean areCopiesInStore(int numCopies) {
-		r.lock();
-		try { return (this.numCopies>=numCopies); }
-		finally { r.unlock(); }
+		return (this.numCopies>=numCopies);
 	}
 	
 	/**
@@ -151,27 +135,19 @@ public class BookStoreBook extends ImmutableBook {
 	 * @return
 	 */
 	public boolean buyCopies(int numCopies) {
-		w.lock();
-		try {
-			if(areCopiesInStore(numCopies)) {
-				this.numCopies-=numCopies;
-				return true;
-			}
-			return false;
+		if(areCopiesInStore(numCopies)) {
+			this.numCopies-=numCopies;
+			return true;
 		}
-		finally { w.unlock(); }
+		return false;
 	}
 	
 	/**
 	 * Adds newCopies to the total number of copies of the book.
 	 */
 	public void addCopies(int newCopies) {
-		w.lock();
-		try {
-			this.numCopies += newCopies;
-			this.saleMisses = 0;
-		}
-		finally { w.unlock(); }
+		this.numCopies += newCopies;
+		this.saleMisses = 0;
 	}
 
 
@@ -179,9 +155,7 @@ public class BookStoreBook extends ImmutableBook {
 	 * Increases the amount of missed sales of the book.
 	 */
 	public void addSaleMiss() {
-		w.lock();
-		try { this.saleMisses++; }
-		finally { w.unlock(); }
+		this.saleMisses++;
 	}
 
 	/**
@@ -189,8 +163,6 @@ public class BookStoreBook extends ImmutableBook {
 	 * 
 	 * @param rating
 	 */
-	
-	//No locks on addRating since it has not been implemented in this solution
 	public void addRating(int rating) {
 		this.totalRating += rating;
 		this.timesRated++;
@@ -203,9 +175,7 @@ public class BookStoreBook extends ImmutableBook {
 	 * @return
 	 */
 	public boolean hadSaleMiss() {
-		r.lock();
-		try { return this.saleMisses > 0; }
-		finally { r.unlock(); }
+		return this.saleMisses > 0;
 	}
 
 	/**
@@ -248,6 +218,15 @@ public class BookStoreBook extends ImmutableBook {
 	public BookStoreBook copy() {
 		return new BookStoreBook(this.getISBN(), new String(this.getTitle()),
 				new String(this.getAuthor()), this.getPrice(), this.numCopies);
+	}
+
+	public void aquireWriteLock() {
+		w.lock();		
+	}
+	
+	public void releaseWriteLock() {
+		w.unlock();
+		
 	}
 
 }
