@@ -20,7 +20,7 @@ import com.acertainbookstore.interfaces.BookStore;
 import com.acertainbookstore.interfaces.StockManager;
 import com.acertainbookstore.utils.BookStoreException;
 
-public class ConcurrentTest1 {
+public class ConcurrentTest4 {
 
 	//private static boolean concurrentlocalTest = true; 
 	private static StockManager storeManager;
@@ -146,7 +146,6 @@ public class ConcurrentTest1 {
 			
 			this.theSagas = new HashSet<BookCopy>();
 			theSagas.add(new BookCopy(testISBN, 1));
-
 		}
 		
 		@Override
