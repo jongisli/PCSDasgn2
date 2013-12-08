@@ -96,7 +96,7 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 		/* Update the number of copies:
 		 * We take a read lock here not a write lock since we would like
 		 * to allow for interleavings "on the Map level" with all functions 
-		 * except addBooks(). The intra-book locks will make sure each book
+		 * except addBooks(). The book levlel locks will make sure each book
 		 * is consistent. 
 		 */
 		r.lock();
@@ -141,6 +141,8 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 
 	public List<StockBook> getBooks() {
 		List<StockBook> listBooks = new ArrayList<StockBook>();
+		//We put a write lock on the map here, so individual books can't be changed
+		//while executing
 		w.lock();
 		try { 
 			Collection<BookStoreBook> bookMapValues = bookMap.values(); 
@@ -305,7 +307,6 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 		List<BookStoreBook> listAllEditorPicks = new ArrayList<BookStoreBook>();
 		List<Book> listEditorPicks = new ArrayList<Book>();
 		
-		//Moved book out of try clause
 		BookStoreBook book;
 		r.lock();
 		try {
@@ -323,6 +324,7 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 					listAllEditorPicks.add(book);
 				}
 			}
+			//release all the readLocks
 			while (it.hasNext()) {
 				Entry<Integer, BookStoreBook> pair = (Entry<Integer, BookStoreBook>) it
 						.next();
