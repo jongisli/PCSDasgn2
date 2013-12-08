@@ -9,7 +9,9 @@ import java.util.Set;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.acertainbookstore.business.Book;
 import com.acertainbookstore.business.BookCopy;
+import com.acertainbookstore.business.BookEditorPick;
 import com.acertainbookstore.business.ConcurrentCertainBookStore;
 import com.acertainbookstore.business.ConcurrentCertainBookStore;
 import com.acertainbookstore.business.ImmutableStockBook;
@@ -25,13 +27,14 @@ public class ConcurrentTest4 {
 	//private static boolean concurrentlocalTest = true; 
 	private static StockManager storeManager;
 	private static BookStore client;
-	
+	private static boolean testFailed;
 	
 	@BeforeClass
 	public static void setUpBeforeClass() {
 	
 		storeManager = ConcurrentCertainBookStore.getInstance();
 		client = ConcurrentCertainBookStore.getInstance();
+		testFailed = false;
 	}
 	
 	/**
@@ -39,7 +42,13 @@ public class ConcurrentTest4 {
 	 * for concurrency.
 	 * 
 	 * 1. Add five books to the bookstore
-	 * 2. Make Client1 get the editor picks and check
+	 * 
+	 * 2. Make Client1 set four of them as editor picks
+	 * 
+	 * 3. Make Client1 subsequently set the same four NOT as editor picks
+	 * 
+	 * 4. Make Client2 get editor picks and test that either all the four 
+	 * books are there or none.
 	 * 
 	 */
 	
@@ -47,11 +56,26 @@ public class ConcurrentTest4 {
 	public void TestAtomicity() {
 		
 		int testISBN = 100;
-		int amountOfBooks = 1000;
 		Set<StockBook> booksToAdd = new HashSet<StockBook>();
 		booksToAdd.add(new ImmutableStockBook(testISBN,
 				"Egils saga Skalla-Gr’mssonar",
-				"Viking Vikingsson", (float) 100, amountOfBooks, 0, 0, 0,
+				"Viking Vikingsson", (float) 100, 1, 0, 0, 0,
+				false));
+		booksToAdd.add(new ImmutableStockBook(testISBN + 1,
+				"Brennu-Nj‡ls saga",
+				"Viking Vikingsson", (float) 100, 1, 0, 0, 0,
+				false));
+		booksToAdd.add(new ImmutableStockBook(testISBN + 2,
+				"G’sla saga Sœrssonar",
+				"Viking Vikingsson", (float) 100, 1, 0, 0, 0,
+				false));
+		booksToAdd.add(new ImmutableStockBook(testISBN + 3,
+				"Computational and Mathematicl Modeling",
+				"Christian Igel", (float) 300, 1, 0, 0, 0,
+				false));
+		booksToAdd.add(new ImmutableStockBook(testISBN + 4,
+				"Principles of computer systems design",
+				"Vivek", (float) 200, 1, 0, 0, 0,
 				false));
 		try {
 			storeManager.addBooks(booksToAdd);
@@ -60,9 +84,9 @@ public class ConcurrentTest4 {
 			fail();
 		}
 		
-		int repeats = 500;
-		Thread client1 = new Thread(new buyBooksClient(testISBN, repeats));
-		Thread client2 = new Thread(new addCopiesClient(testISBN, repeats));
+		int repeats = 100;
+		Thread client1 = new Thread(new SetEditorPicksClient(testISBN, repeats));
+		Thread client2 = new Thread(new GetEditorPicksClient(testISBN, repeats));
 		
 		client1.start();
 		client2.start();
@@ -75,41 +99,32 @@ public class ConcurrentTest4 {
 			fail();
 		}
 		
-		
-		List<StockBook> listBooks = null;
-		try {
-			listBooks = storeManager.getBooks();
-		} catch (BookStoreException e) {
-			e.printStackTrace();
-			fail();
-		}
-		
-		for (StockBook b : listBooks) {
-			if (b.getISBN() == testISBN) {
-				System.out.println(b.getNumCopies());
-				assertTrue("Num copies  after buying one copy 10 times and adding one copy 10 times",
-						b.getNumCopies() == amountOfBooks);
-				break;
-			}
-		}
+		assertFalse(testFailed);
 	}
 	
-	private class buyBooksClient implements Runnable {
-
-
+	private class SetEditorPicksClient implements Runnable {
 			private StockManager storeManager;
-			private BookStore client;
-			private Set<BookCopy> theSagas;
 			private int repeats;
+			private Set<BookEditorPick> editorPicksTrue;
+			private Set<BookEditorPick> editorPicksFalse;
 			
-			public buyBooksClient(int testISBN, int repeats)
+			public SetEditorPicksClient(int testISBN, int repeats)
 			{
 				this.storeManager = ConcurrentCertainBookStore.getInstance();
-				this.client = ConcurrentCertainBookStore.getInstance();
 				this.repeats = repeats;
 				
-				this.theSagas = new HashSet<BookCopy>();
-				theSagas.add(new BookCopy(testISBN, 1));
+				this.editorPicksTrue = new HashSet<BookEditorPick>();
+				editorPicksTrue.add(new BookEditorPick(testISBN, true));
+				editorPicksTrue.add(new BookEditorPick(testISBN + 1, true));
+				editorPicksTrue.add(new BookEditorPick(testISBN + 2, true));
+				editorPicksTrue.add(new BookEditorPick(testISBN + 3, true));
+				
+				this.editorPicksFalse = new HashSet<BookEditorPick>();
+				editorPicksFalse.add(new BookEditorPick(testISBN, false));
+				editorPicksFalse.add(new BookEditorPick(testISBN + 1, false));
+				editorPicksFalse.add(new BookEditorPick(testISBN + 2, false));
+				editorPicksFalse.add(new BookEditorPick(testISBN + 3, false));
+				
 			}
 			
 			@Override
@@ -117,10 +132,13 @@ public class ConcurrentTest4 {
 				try {
 					for (int i = 0; i < repeats; i++)
 					{
-						client.buyBooks(theSagas);
+						System.out.println("Updating EDITORPICKS " + i);
+						storeManager.updateEditorPicks(editorPicksTrue);
+						storeManager.updateEditorPicks(editorPicksFalse);
 					}
 				} catch (BookStoreException e) {
 					e.printStackTrace();
+					testFailed = true;
 					fail();
 				}
 			}
@@ -128,37 +146,73 @@ public class ConcurrentTest4 {
 		}
 
 
-	private class addCopiesClient implements Runnable {
-	
-		private StockManager storeManager;
+	private class GetEditorPicksClient implements Runnable {
 		private BookStore client;
-		private Set<BookCopy> theSagas;
 		private int repeats;
+		private int testISBN;
 		
-		public addCopiesClient(int testISBN, int repeats)
+		public GetEditorPicksClient(int testISBN, int repeats)
 		{
-			this.storeManager = ConcurrentCertainBookStore.getInstance();
 			this.client = ConcurrentCertainBookStore.getInstance();
 			this.repeats = repeats;
-			
-			this.theSagas = new HashSet<BookCopy>();
-			theSagas.add(new BookCopy(testISBN, 1));
+			this.testISBN = testISBN;
 		}
 		
 		@Override
 		public void run() {
-			try {
-				for (int i = 0; i < repeats; i++)
-				{
-					storeManager.addCopies(theSagas);
+			for (int i = 0; i < repeats; i++)
+			{
+				System.out.println("Checking EDITORPICKS " + i);
+				List<Book> books = null;
+				boolean book1IsThere = false;
+				boolean book2IsThere = false;
+				boolean book3IsThere = false;
+				boolean book4IsThere = false;
+				try {
+					book1IsThere = false;
+					book2IsThere = false;
+					book3IsThere = false;
+					book4IsThere = false;
+					books = client.getEditorPicks(4);
+					for (Book b : books)
+					{
+						if (b.getISBN() == testISBN)
+						{
+							book1IsThere = true;
+						}
+						if (b.getISBN() == testISBN + 1)
+						{
+							book2IsThere = true;
+						}
+						if (b.getISBN() == testISBN + 2)
+						{
+							book3IsThere = true;
+						}
+						if (b.getISBN() == testISBN + 3)
+						{
+							book4IsThere = true;
+						}
+					}
+					boolean allAreThere = book1IsThere && book2IsThere && book3IsThere && book4IsThere;
+					
+					if (!allAreThere)
+					{
+						testFailed = true;
+						break;
+					}
+					System.out.println("ALL EDITORPICKS");
+					
+				} catch (BookStoreException e) {
+					System.out.println("ZERO EDITORPICKS");
+					// If a bookStoreException was thrown the number 
+					// of editorPicks was less than 4 (should be 0 then)
+					if (e.getMessage() != "Only 0 editor picks are available.")
+					{
+						testFailed = true;
+						break;
+					}
 				}
-			} catch (BookStoreException e) {
-				e.printStackTrace();
-				fail();
 			}
-			
-			
-		}
-			
+		}	
 	}		
 }
