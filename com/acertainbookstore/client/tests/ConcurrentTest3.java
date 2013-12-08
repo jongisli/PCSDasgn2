@@ -81,7 +81,7 @@ public class ConcurrentTest3 {
 		
 		// add books with ISBN 100 50 copies.
 		int testISBN = 100;
-		int amountOfBooks = 100;
+		int amountOfBooks = 10000;
 		Set<StockBook> booksToAdd = new HashSet<StockBook>();
 		booksToAdd.add(new ImmutableStockBook(testISBN,
 				"Egils saga Skalla-Gr’mssonar",
@@ -97,7 +97,7 @@ public class ConcurrentTest3 {
 		
 		// add books with ISBN 200 20 copies 
 		int testISBN2 = 200;
-		int amountOfBooks2 = 20;
+		int amountOfBooks2 = 2000;
 		Set<StockBook> booksToAdd2 = new HashSet<StockBook>();
 		booksToAdd2.add(new ImmutableStockBook(testISBN2,
 				"Principles of computer system and design",
@@ -112,7 +112,7 @@ public class ConcurrentTest3 {
 		
 		// add books with ISBN 300 only 3 copies 
 		int testISBN3 = 300;
-		int amountOfBooks3 = 2;
+		int amountOfBooks3 = 200;
 		Set<StockBook> booksToAdd3 = new HashSet<StockBook>();
 		booksToAdd3.add(new ImmutableStockBook(testISBN3,
 				"Computational and Mathematicl Modeling",
@@ -128,7 +128,7 @@ public class ConcurrentTest3 {
 		
 		
 		
-		int repeats = 1;
+		int repeats = 100;
 		Thread client1 = new Thread(new buyBooksClientA(testISBN2, repeats));
 		Thread client2 = new Thread(new buyBooksClientB(testISBN2, repeats));
 		Thread client3 = new Thread(new buyBooksClientC(testISBN2, repeats));
@@ -178,7 +178,7 @@ public class ConcurrentTest3 {
 			if (b.getISBN() == testISBN) {
 				System.out.println(b.getNumCopies());
 				assertTrue("Number of copies",
-						b.getNumCopies() == 74);
+						b.getNumCopies() == 7400);
 				break;
 			}
 		}
@@ -196,7 +196,7 @@ public class ConcurrentTest3 {
 			if (b.getISBN() == testISBN2) {
 				System.out.println(b.getNumCopies());
 				assertTrue("Number of copies",
-						b.getNumCopies() == 9);
+						b.getNumCopies() == 900);
 				break;
 			}
 		}
@@ -214,7 +214,7 @@ public class ConcurrentTest3 {
 			if (b.getISBN() == testISBN3) {
 				System.out.println(b.getNumCopies());
 				assertTrue("Number of copies",
-						b.getNumCopies() == 6);
+						b.getNumCopies() == 600);
 				break;
 			}
 		}
