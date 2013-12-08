@@ -37,6 +37,10 @@ public class ConcurrentTest4 {
 		testFailed = false;
 	}
 	
+	
+	/*
+	 * WARNING: Test is very prone to deadlocking!
+	 */
 	/**
 	 * Here we test the functions updateEditorPicks() and getEditorPicks()
 	 * for concurrency.
