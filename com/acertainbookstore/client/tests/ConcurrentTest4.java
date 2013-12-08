@@ -84,7 +84,7 @@ public class ConcurrentTest4 {
 			fail();
 		}
 		
-		int repeats = 100;
+		int repeats = 10;
 		Thread client1 = new Thread(new SetEditorPicksClient(testISBN, repeats));
 		Thread client2 = new Thread(new GetEditorPicksClient(testISBN, repeats));
 		
@@ -132,7 +132,6 @@ public class ConcurrentTest4 {
 				try {
 					for (int i = 0; i < repeats; i++)
 					{
-						System.out.println("Updating EDITORPICKS " + i);
 						storeManager.updateEditorPicks(editorPicksTrue);
 						storeManager.updateEditorPicks(editorPicksFalse);
 					}
@@ -162,7 +161,6 @@ public class ConcurrentTest4 {
 		public void run() {
 			for (int i = 0; i < repeats; i++)
 			{
-				System.out.println("Checking EDITORPICKS " + i);
 				List<Book> books = null;
 				boolean book1IsThere = false;
 				boolean book2IsThere = false;
@@ -200,13 +198,11 @@ public class ConcurrentTest4 {
 						testFailed = true;
 						break;
 					}
-					System.out.println("ALL EDITORPICKS");
 					
 				} catch (BookStoreException e) {
-					System.out.println("ZERO EDITORPICKS");
 					// If a bookStoreException was thrown the number 
 					// of editorPicks was less than 4 (should be 0 then)
-					if (e.getMessage() != "Only 0 editor picks are available.")
+					if (e.getNumberOfBooks() != 0)
 					{
 						testFailed = true;
 						break;

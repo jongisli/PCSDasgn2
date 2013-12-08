@@ -325,6 +325,7 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 				}
 			}
 			//release all the readLocks
+			it = bookMap.entrySet().iterator();
 			while (it.hasNext()) {
 				Entry<Integer, BookStoreBook> pair = (Entry<Integer, BookStoreBook>) it
 						.next();
@@ -332,7 +333,6 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 
 				book.releaseReadLock();
 			}
-			
 		}
 		finally { r.unlock(); }
 
@@ -342,7 +342,7 @@ public class ConcurrentCertainBookStore implements BookStore, StockManager{
 		int rangePicks = listAllEditorPicks.size();
 		if (rangePicks < numBooks) {
 			throw new BookStoreException("Only " + rangePicks
-					+ " editor picks are available.");
+					+ " editor picks are available.", rangePicks);
 		}
 		int randNum;
 		while (tobePicked.size() < numBooks) {
