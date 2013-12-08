@@ -35,15 +35,12 @@ public class ConcurrentTest4 {
 	}
 	
 	/**
-	 * Here we want to test the atomicity of buying and adding books
+	 * Here we test the functions updateEditorPicks() and getEditorPicks()
+	 * for concurrency.
 	 * 
-	 * 1. We add books from the Sagas of Icelanders
+	 * 1. Add five books to the bookstore
+	 * 2. Make Client1 get the editor picks and check
 	 * 
-	 * 2. We start a client (thread1) which buys one book multiple times
-	 * 
-	 * 3. We then start a client (thread2) which adds one copy multiple times
-	 *
-	 *
 	 */
 	
 	@Test

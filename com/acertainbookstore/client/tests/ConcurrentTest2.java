@@ -23,11 +23,13 @@ public class ConcurrentTest2 {
 	
 	private static StockManager storeManager;
 	private static BookStore client;
-
+	private static boolean testFailed;
+	
 	@BeforeClass
 	public static void setUpBeforeClass() {
 		storeManager = ConcurrentCertainBookStore.getInstance();
 		client = ConcurrentCertainBookStore.getInstance();
+		testFailed = false;
 	}
 	
 	/**
@@ -83,6 +85,8 @@ public class ConcurrentTest2 {
 			e.printStackTrace();
 			fail();
 		}
+		
+		assertFalse(testFailed);
 		
 	}
 
@@ -166,7 +170,12 @@ public class ConcurrentTest2 {
 					boolean allAreThere = book1IsThere && book2IsThere && book3IsThere;
 					boolean noneAreThere = !book1IsThere && !book2IsThere && !book3IsThere;
 					
-					assertTrue(allAreThere != noneAreThere);
+					if (allAreThere == noneAreThere)
+					{
+						testFailed = true;
+						break;
+					}
+					
 				}
 			} catch (BookStoreException e) {
 				e.printStackTrace();
